@@ -1,0 +1,16 @@
+single directory, opal to lflood, 32678 empty files, single process
+sudo time lfs migrate -m 0 -c 1 32678 (put it all on mdt 0)
+sudo time lfs migrate -m 1 -c 1 32678 (put it all on mdt 1)
+
+
+
+
+(opal186):migrate$ sudo time lfs migrate -m 0 -c 1 32678
+[sudo] password for defazio1:
+0.39user 25.38system 8:20.77elapsed 5%CPU (0avgtext+0avgdata 2872maxresident)k
+0inputs+0outputs (0major+316minor)pagefaults 0swaps
+
+(opal186):migrate$ sudo time lfs migrate -m 1 -c 1 32678
+[sudo] password for defazio1:
+0.46user 28.20system 12:40.41elapsed 3%CPU (0avgtext+0avgdata 2872maxresident)k
+0inputs+0outputs (0major+243minor)pagefaults 0swaps

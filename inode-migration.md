@@ -50,4 +50,7 @@ Create a directory with a ton of files, then migrate it to 2 MDTs
 or set it up with `setstripe` to be on 2 MDTs
 
 ## from olaf
-Yes.  It might be worthwhile to start with running mdtest to create a directory tree, and then migrate those, just to validate your script.  And then you can do that with different directory sizes and see how directory size affects migrate rate, if at all.
+Yes.  It might be worthwhile to start with running mdtest to
+create a directory tree, and then migrate those, just to validate your script.
+And then you can do that with different directory sizes and see how directory
+size affects migrate rate, if at all.
