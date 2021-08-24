@@ -37,6 +37,6 @@ def create_files(root_dir, n):
         (my_dir / name).touch()
 
 if __name__ == '__main__':
-    root_dir = '/p/lflood/defazio1/migrate/metadata-tests' #sys.argv[1]
-    n = 256 #int(sys.argv[2])
+    root_dir = '/p/lflood/defazio1/migrate/metadata-tests/256_512' #sys.argv[1]
+    n = 512 #int(sys.argv[2])
     create_files(root_dir, n)
