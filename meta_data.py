@@ -1,3 +1,5 @@
+#!/bin/env python3
+
 '''The meta data tests
 
 The basic idea is to create a bunch of files,
@@ -97,10 +99,10 @@ def make_command_migrate(args):
     '''Do the actual migrate command.
     '''
     cmd = ['lfs', 'migrate']
-    if args['mdt-setup']:
-        cmd += ['-m', args['mdt-setup']]
-    if args['count']:
-        cmd += ['-c', args['count']]
+    if args['migrate_index']:
+        cmd += ['-m', args['migrate_index']]
+    if args['mdt_count']:
+        cmd += ['-c', args['mdt_count']]
     cmd.append(files_dir)
 
     return cmd
@@ -115,28 +117,36 @@ def do_run(args):
     '''
     start_time = datetime.datetime.now()
 
-    files_root_dir = pathlib.Path(args['files_root'])
-    logs_root_dir = pathlib.Path(args['logs_root'])
+    spid = str(os.environ.get('SLURM_PROCID'))
+    if spid is None:
+        spid = 0
+
+    files_root_dir = pathlib.Path(args['files_dir'])
+    logs_root_dir = pathlib.Path(args['logs_dir'])
     files_dir = str(files_root_dir / str(spid))
     logs_dir = str(logs_root_dir / str(spid))
 
+    print('DOING RUN')
+
     cmd = ['lfs', 'migrate']
-    if args['mdt-setup']:
-        cmd += ['-m', args['mdt-setup']]
-    if args['count']:
-        cmd += ['-c', args['count']]
+    if args['migrate_index']:
+        cmd += ['-m', args['migrate_index']]
+    if args['mdt_count']:
+        cmd += ['-c', args['mdt_count']]
     cmd.append(str(files_dir))
 
-        # TODO capture output and shove it into the log file?
+    # TODO capture output and shove it into the log file?
     s = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
 
+    print('LOGGING RUN')
+
     end_time = datetime.datetime.now()
 
-    with open(logs_dir, 'w') as f:
+    with open(logs_dir, 'w+') as f:
         yaml.safe_dump(
             {
                 'args': sys.argv,
@@ -147,6 +157,10 @@ def do_run(args):
             }
         )
 
+# def do_run(args):
+#     print('RUNNING')
+#     with open('/g/g0/defazio1/stuffs/' + str(spid), 'w+') as f:
+#         f.write(str(spid))
 
 def make_srun_command(num_nodes, num_procs, command_path):
     '''need to eventually deal with what
@@ -178,6 +192,7 @@ def make_command(files_dir, logs_dir):
         '/g/g0/defazio1/non-jira-projects/migration/meta_data.py',
     ]
     argv = copy.deepcopy(sys.argv)
+    argv.remove('meta_data.py')
     if '-s' in argv:
         argv.remove('-s')
     if '--setup' in argv:
@@ -191,7 +206,7 @@ def make_command(files_dir, logs_dir):
         command += ['--files-dir', str(files_dir)]
 
 
-    return ' '.join(command)
+    return ' '.join(['\'' + c + '\'' for c in command])
 
 def write_command(command, log_dir):
     command_path = log_dir / 'command.sh'
@@ -216,7 +231,8 @@ def setup_run(args):
     # if the files dir is premade, don't make a new one
     if args['files_dir'] is not None:
         files_dir = pathlib.Path(args['files_dir'])
-        files_dir.mkdir(exist_ok=True)
+        if 'opal' in get_hostname():
+            files_dir.mkdir(exist_ok=True)
     else:
         files_dir = root_files_dir / ts
         files_dir.mkdir(exist_ok=False)
@@ -258,9 +274,7 @@ def setup_run(args):
 
     # launch the srun command
     if not args['dryrun']:
-        subprocess.run(
-            srun-command
-        )
+        subprocess.run(srun_command)
 
 
 def make_command_migrate(args):
@@ -268,10 +282,10 @@ def make_command_migrate(args):
     This really means just do an lfs-migrate
     '''
     cmd = ['lfs', 'migrate']
-    if args['mdt-setup']:
-        cmd += ['-m', args['mdt-setup']]
-    if args['count']:
-        cmd += ['-c', args['count']]
+    if args['migrate-index']:
+        cmd += ['-m', '\"' + args['migrate-index'] + '\"']
+    if args['mdt-count']:
+        cmd += ['-c', args['mdt-count']]
     cmd.append(files_dir)
 
     return cmd
@@ -318,21 +332,21 @@ def create_files(root_dir, n):
 
 
 # de do run run run de do run run
-def do_run():
-    '''
-    '''
-    pass
+# def do_run():
+#     '''
+#     '''
+#     pass
 
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-m',
-        '--mdt-setup',
+        '--migrate-index',
         help='passed to lfs migrate',
     )
     parser.add_argument(
         '-c',
-        '--count',
+        '--mdt-count',
         help='passed to lfs migrate',
     )
     parser.add_argument(
@@ -390,8 +404,9 @@ def main():
     if args['setup']:
         setup_run(args)
     else:
-        #do_run(args)
-        pass
+        print('RUN TIME')
+        do_run(args)
+
 
 if __name__ == '__main__':
     main()
