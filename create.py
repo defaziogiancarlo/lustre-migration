@@ -82,6 +82,9 @@ def create_node_proc_files(num_nodes, num_procs, root_dir, num_files_per_dir):
     # create the root dir
     # (or all processes will attempt this)
     root_dir = pathlib.Path(root_dir)
+    # if it already exists, don't mess with it
+    if root_dir.is_dir():
+        return
     root_dir.mkdir()
 
     # put a meta-data.yaml file in the dir
@@ -147,9 +150,10 @@ def make_parser():
     )
     return parser
 
-def main():
-    parser = make_parser()
-    args = vars(parser.parse_args())
+def main(args=None):
+    if args is None:
+        parser = make_parser()
+        args = vars(parser.parse_args())
 
     # called directly from command line
     if args['create_node_proc_files']:

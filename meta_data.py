@@ -206,7 +206,10 @@ def make_command(files_dir, logs_dir):
         '/g/g0/defazio1/non-jira-projects/migration/meta_data.py',
     ]
     argv = copy.deepcopy(sys.argv)
-    argv.remove('meta_data.py')
+    if 'meta_data.py' in argv:
+        argv.remove('meta_data.py')
+    if '/g/g0/defazio1/non-jira-projects/migration/meta_data.py' in argv:
+        argv.remove('/g/g0/defazio1/non-jira-projects/migration/meta_data.py')
     if '-s' in argv:
         argv.remove('-s')
     if '--setup' in argv:
@@ -277,7 +280,7 @@ def setup_run(args):
         'num-dirs': None,
         'action': 'create' if 'create' in args else 'migrate',
         'mdt-config-initial': None,
-        'mdt-config-final': None,
+        'mdt-config-final': args['migrate_index'],
         'filesystem': None,
     }
     with open(log_dir / 'meta-data.yaml', 'w+') as f:
@@ -421,9 +424,10 @@ def make_parser():
     return parser
 
 
-def main():
-    parser = make_parser()
-    args = vars(parser.parse_args())
+def main(args=None):
+    if args is None:
+        parser = make_parser()
+        args = vars(parser.parse_args())
 
     if args['setup']:
         setup_run(args)
