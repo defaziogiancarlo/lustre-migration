@@ -123,17 +123,29 @@ def do_run(args):
 
     files_root_dir = pathlib.Path(args['files_dir'])
     logs_root_dir = pathlib.Path(args['logs_dir'])
-    files_dir = str(files_root_dir / str(spid))
+    if args['nested_by_node']:
+        dir_num = str(os.environ['SLURM_NODEID'])
+        proc_num = str(os.environ['SLURM_LOCALID'])
+        files_dir = str(files_root_dir / dir_num / proc_num)
+    else:
+        procid = str(os.environ['SLURM_PROCID'])
+        files_dir = str(files_root_dir / procid)
+
     logs_dir = str(logs_root_dir / str(spid))
 
+
     #print('DOING RUN')
+
+
+    # TODO allow for having each process migrate to
+    # a single MDT, that is
 
     cmd = ['lfs', 'migrate']
     if args['migrate_index']:
         cmd += ['-m', args['migrate_index']]
     if args['mdt_count']:
         cmd += ['-c', args['mdt_count']]
-    cmd.append(str(files_dir))
+    cmd.append(files_dir)
 
     # TODO capture output and shove it into the log file?
     s = subprocess.run(
@@ -181,6 +193,7 @@ def make_srun_command(num_nodes, num_procs, command_path):
         f'-N{num_nodes}',
         f'-n{num_procs}',
         '--time', '05:59:00',
+        '--wait', '300', # wait up to 5 min
         '-l',
         str(command_path)
     ]
@@ -274,8 +287,8 @@ def setup_run(args):
     pprint.pprint(meta_data)
 
     # launch the srun command
-    #if not args['dryrun']:
-    #    subprocess.run(srun_command)
+    if not args['dryrun']:
+       subprocess.run(srun_command)
     print(' '.join(srun_command))
 
 def make_command_migrate(args):
@@ -381,6 +394,16 @@ def make_parser():
         '--dryrun',
         action='store_true',
         help='set everything up, but don\'t actually call srun'
+    )
+    parser.add_argument(
+        '--nested-by-node',
+        action='store_true',
+        help='the files have a topdir->nodedir->procdir->files structure',
+    )
+    parser.add_argument(
+        '--single-mdt',
+        action='store_true',
+        help='migrate each subdir (per srun process) to a single mdt'
     )
     parser.add_argument(
         '-s',
