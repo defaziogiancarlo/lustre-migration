@@ -15,15 +15,17 @@ def make_combos(num_nodes_list=None, num_procs_list=None, num_files_list=None):
     if num_nodes_list is None:
         num_nodes_list = [1, 2, 4, 8, 16]
     if num_procs_list is None:
-        num_procs_list = [1, 2, 4, 8, 16]
+        num_procs_list = [32, 64, 128, 256]
     if num_files_list is None:
-        num_files_list = [1, 8, 64, 512, 4096, 65536]
+        num_files_list = [1, 8, 64, 512, 4096] #, 65536]
 
     combos = []
     for num_nodes in num_nodes_list:
         for num_procs in num_procs_list:
             for num_files in num_files_list:
                 if num_procs < num_nodes:
+                    continue
+                if num_procs > 16 * num_nodes:
                     continue
                 combos.append((num_nodes, num_procs, num_files))
     return combos

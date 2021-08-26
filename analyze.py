@@ -60,7 +60,6 @@ def start_end_stats(dirname):
             results['earliest-start-time']
         ).total_seconds()
     )
-
     return results
 
 def update_meta_data_results(dirname):
@@ -145,6 +144,7 @@ def summarize_meta_data(dirname, header=False, separator=','):
     update_meta_data_results(dirname)
     process_meta_data(dirname)
 
+
     dirname = pathlib.Path(dirname)
     meta_data_path = dirname / 'meta-data.yaml'
     with open(meta_data_path, 'r') as f:
@@ -180,8 +180,10 @@ def summarize_all(dirs, fileout):
             print(d.name)
             summary.append(summarize_meta_data(d))
         except:
+            print('fuck')
             continue
 
+    print(summary)
     with open(fileout, 'w') as f:
         f.write('\n'.join(summary))
 
@@ -191,7 +193,7 @@ def summarize_stuff_now():
     '''cause you gotta get some results out'''
     d = pathlib.Path('/g/g0/defazio1/non-jira-projects/migration/data').glob("*")
     #print(list(d))
-    d = [x for x in d if (x.name >= '2021-08-25_171213.578813' and x.name <= '2021-08-25_233404.574816')]
+    d = [x for x in d if (x.name >= '2021-08-26_151411.616957' and x.name <= '2021-08-26_163113.065141/')]
     #for x in d:
     #    print(x.name)
     fileout = '/g/g0/defazio1/non-jira-projects/migration/data/summary-now'

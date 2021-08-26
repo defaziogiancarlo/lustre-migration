@@ -25,6 +25,8 @@ spid = str(os.environ.get('SLURM_PROCID'))
 #     ).stdout.decode().strip()
 
 
+# TODO should be multiprocessing creation of large directories
+
 def create_files(root_dir, n):
     '''Create a bunch of files for the purpose of
     doing migrations on them.
@@ -128,6 +130,12 @@ def create_node_proc_files(num_nodes, num_procs, root_dir, num_files_per_dir,
         srun_command.append('--directories')
 
     subprocess.run(srun_command)
+
+# TODO deal with non-nested
+def remove_files(dirname):
+    '''Assume nested for now'''
+    # read the meta-data
+    # or just use the dirname itself
 
 
 def make_parser():
