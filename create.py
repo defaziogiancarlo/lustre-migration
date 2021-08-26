@@ -10,6 +10,8 @@ import os
 import pathlib
 import subprocess
 
+import yaml
+
 spid = str(os.environ.get('SLURM_PROCID'))
 
 # def get_hostname():
@@ -49,7 +51,7 @@ def _create_node_proc_files_srun_single(root_dir, n):
 
     # create the root dir
     # (all processes will attempt this)
-    #root_dir = pathlib.Path(root_dir)
+    root_dir = pathlib.Path(root_dir)
     #root_dir.mkdir(exist_ok=True)
 
     # now create the node dirs
@@ -96,7 +98,7 @@ def create_node_proc_files(num_nodes, num_procs, root_dir, num_files_per_dir):
         'total_files': int(num_procs) * int(num_files_per_dir),
     }
 
-    with open(root_dir / 'meta-data.yaml') as f:
+    with open(root_dir / 'meta-data.yaml', 'w') as f:
         yaml.safe_dump(meta_data, f)
 
     srun_command = (
