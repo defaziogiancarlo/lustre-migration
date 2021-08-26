@@ -67,7 +67,8 @@ root_log_dir = pathlib.Path(
 # where the actual files go for the tests (in lustre)
 #if 'catalyst' in hostname():
 root_files_dir = pathlib.Path(
-    '/p/lflood/defazio1/migrate/metadata-tests'
+    #'/p/lflood/defazio1/migrate/metadata-tests'
+    '/p/lflood/defazio1/migrate/metadata-tests-unstriped'
 )
 #if 'opal' in hostname():
 
@@ -157,6 +158,8 @@ def do_run(args):
     #print('LOGGING RUN')
 
     end_time = datetime.datetime.now()
+
+
 
     with open(logs_dir, 'w') as f:
         yaml.safe_dump(

@@ -40,7 +40,7 @@ def create_files(root_dir, n):
         (my_dir / name).touch()
 
 
-def _create_node_proc_files_srun_single(root_dir, n):
+def _create_node_proc_files_srun_single(root_dir, n, directories=False):
     '''Create files with the structure:
     topdir->nodedir->procdir->files.
     A process first creates the topedir and nodedirs,
@@ -70,15 +70,20 @@ def _create_node_proc_files_srun_single(root_dir, n):
     number_length = len(str(n-1))
     for i in range(n):
         filename = str(i).zfill(number_length)
-        (proc_dir / filename).touch()
+        if directories:
+            (proc_dir / filename).mkdir()
+        else:
+            (proc_dir / filename).touch()
 
 
-def create_node_proc_files(num_nodes, num_procs, root_dir, num_files_per_dir):
+def create_node_proc_files(num_nodes, num_procs, root_dir, num_files_per_dir,
+                           directories=False):
     '''Create files is a
     topdir -> node_dir -> proc_dir -> files tree
     top_dir should not exist
     uses srun to run a bunch of _create_node_proc_files_srun_single_proc
     instances to do most of the work
+    if directories is True, make directories instead of files
     '''
 
     # create the root dir
@@ -94,7 +99,7 @@ def create_node_proc_files(num_nodes, num_procs, root_dir, num_files_per_dir):
         'files_per_dir': int(num_files_per_dir),
         'num_nodes': int(num_nodes),
         'num_procs': int(num_procs),
-        'nexted_by_node': True,
+        'nested_by_node': True,
         'total_files': int(num_procs) * int(num_files_per_dir),
     }
 
@@ -119,6 +124,9 @@ def create_node_proc_files(num_nodes, num_procs, root_dir, num_files_per_dir):
             '--files-per-dir', num_files_per_dir,
         ]
     )
+    if directories:
+        srun_command.append('--directories')
+
     subprocess.run(srun_command)
 
 
@@ -150,6 +158,11 @@ def make_parser():
         '--num-procs',
         help='number of processes, passed to srun'
     )
+    parser.add_argument(
+        '--directories',
+        action='store_true',
+        help='make directories instead of files',
+    )
     return parser
 
 def main(args=None):
@@ -164,6 +177,7 @@ def main(args=None):
             args['num_procs'],
             args['root_dir'],
             args['files_per_dir'],
+            directories=args['directories'],
         )
 
     # called inderectly by create_node_proc_files using srun
@@ -171,6 +185,7 @@ def main(args=None):
         _create_node_proc_files_srun_single(
             args['root_dir'],
             args['files_per_dir'],
+            directories=args['directories'],
         )
 
 if __name__ == '__main__':

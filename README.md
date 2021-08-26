@@ -54,3 +54,14 @@ Yes.  It might be worthwhile to start with running mdtest to
 create a directory tree, and then migrate those, just to validate your script.
 And then you can do that with different directory sizes and see how directory
 size affects migrate rate, if at all.
+
+
+## More details after actually building the thing
+The plan is that each subdirectory for each process not be striped, meaning
+it's all on 1 MDT. Then for the migration, all the dirs are moved to another
+MDT, so everything from MDT x to MDT y, with the same (x,y) for all proceses.
+
+Also I need to increase the values `max_rpcs_in_flight` and  `max_mod_rpcs_in_flight`
+on the clients, however for this to work I need to increase the value
+`max_mod_rpcs_per_client` on the server, then reset all the connections.
+Look these params up in the manual for how to set them.

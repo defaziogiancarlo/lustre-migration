@@ -11,11 +11,18 @@ import analyze
 import create
 import meta_data
 
-def make_combos():
+def make_combos(num_nodes_list=None, num_procs_list=None, num_files_list=None):
+    if num_nodes_list is None:
+        num_nodes_list = [1, 2, 4, 8, 16]
+    if num_procs_list is None:
+        num_procs_list = [1, 2, 4, 8, 16]
+    if num_files_list is None:
+        num_files_list = [1, 8, 64, 512, 4096, 65536]
+
     combos = []
-    for num_nodes in [1, 2, 4, 8, 16]:
-        for num_procs in [1, 2, 4, 8, 16, 32, 64, 128, 256]:
-            for num_files in [1, 8, 64, 512, 4096]:
+    for num_nodes in num_nodes_list:
+        for num_procs in num_procs_list:
+            for num_files in num_files_list:
                 if num_procs < num_nodes:
                     continue
                 combos.append((num_nodes, num_procs, num_files))
@@ -23,16 +30,19 @@ def make_combos():
 
 
 root_root_dir = pathlib.Path(
-    '/p/lflood/defazio1/migrate/metadata-tests'
+    '/p/lflood/defazio1/migrate/metadata-tests-unstriped'
 )
 
-def do_single_run(num_nodes, num_procs, num_files):
+def do_single_run(num_nodes, num_procs, num_files, directories,
+                  mdt_initial, mdt_final):
 
     # create the files
 
     # create the dir name
     params = [num_nodes, num_procs, num_files]
     name = '_'.join([str(p) for p in params])
+    if directories:
+        name = 'd' + name
     root_dir = root_root_dir / name
 
     # creat the dirs and files (and meta_data!)
@@ -40,7 +50,8 @@ def do_single_run(num_nodes, num_procs, num_files):
         str(num_nodes),
         str(num_procs),
         root_dir,
-        str(num_files)
+        str(num_files),
+        directories=directories,
     )
 
     # do the run to put files on 2 nodes
@@ -48,7 +59,7 @@ def do_single_run(num_nodes, num_procs, num_files):
         [
             '/g/g0/defazio1/non-jira-projects/migration/meta_data.py',
             '--setup',
-            '--migrate-index', '2,3',
+            '--migrate-index', str(mdt_initial),
             '--num-procs', str(num_procs),
             '--num-nodes', str(num_nodes),
             '--files-dir', root_dir,
@@ -61,7 +72,7 @@ def do_single_run(num_nodes, num_procs, num_files):
         [
             '/g/g0/defazio1/non-jira-projects/migration/meta_data.py',
             '--setup',
-            '--migrate-index', '0,1,2,3',
+            '--migrate-index', str(mdt_final),
             '--num-procs', str(num_procs),
             '--num-nodes', str(num_nodes),
             '--files-dir', root_dir,
@@ -70,11 +81,11 @@ def do_single_run(num_nodes, num_procs, num_files):
     )
 
 
-def do_multilple_runs():
+def do_multilple_runs(directories, mdt_initial, mdt_final):
     '''do a bunch of runs'''
     combos = make_combos()
     for combo in combos:
-        do_single_run(*combo)
+        do_single_run(*combo, directories, mdt_initial, mdt_final)
 
 if __name__ == '__main__':
-    do_multilple_runs()
+    do_multilple_runs(False, 2, 3)

@@ -35,6 +35,11 @@ def start_end_stats(dirname):
             )
             inv_diffs = [1/x for x in diffs]
 
+    # something went wrong , got no data
+    if len(diffs) == 0:
+        print(f'no data for {dirname.name}')
+        raise Exception
+
     results = {
         'earliest-start-time': min(starts),
         'latest-end-time': max(ends),
@@ -46,7 +51,7 @@ def start_end_stats(dirname):
         # 'inv-variance-time': statistics.variance([1/x for x in diffs])
         'average-inv-time': statistics.mean(inv_diffs),
         'median-inv-time': statistics.median(inv_diffs),
-        'stdev-inv-time': statistics.stdev(inv_diffs),
+        'stdev-inv-time': statistics.stdev(inv_diffs) if len(inv_diffs) >= 2 else 0,
 
     }
     results['earliest-to-latest'] = (
@@ -161,3 +166,33 @@ def summarize_meta_data(dirname, header=False, separator=','):
     ]
 
     return separator.join([str(d) for d in data])
+
+def summarize_all(dirs, fileout):
+    '''for a list of path do all the summaries
+    print the summary lines to fileout.
+    '''
+
+    summary = []
+    summary.append(summarize_meta_data(None, header=True))
+
+    for d in dirs:
+        try:
+            print(d.name)
+            summary.append(summarize_meta_data(d))
+        except:
+            continue
+
+    with open(fileout, 'w') as f:
+        f.write('\n'.join(summary))
+
+
+
+def summarize_stuff_now():
+    '''cause you gotta get some results out'''
+    d = pathlib.Path('/g/g0/defazio1/non-jira-projects/migration/data').glob("*")
+    #print(list(d))
+    d = [x for x in d if (x.name >= '2021-08-25_171213.578813' and x.name <= '2021-08-25_233404.574816')]
+    #for x in d:
+    #    print(x.name)
+    fileout = '/g/g0/defazio1/non-jira-projects/migration/data/summary-now'
+    summarize_all(d, fileout)
