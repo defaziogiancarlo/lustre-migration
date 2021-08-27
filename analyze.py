@@ -4,6 +4,7 @@ the visualization.
 
 import pathlib
 import statistics
+import sys
 
 import yaml
 
@@ -147,8 +148,12 @@ def summarize_meta_data(dirname, header=False, separator=','):
 
     dirname = pathlib.Path(dirname)
     meta_data_path = dirname / 'meta-data.yaml'
-    with open(meta_data_path, 'r') as f:
-        meta_data = yaml.safe_load(f)
+    try:
+        with open(meta_data_path, 'r') as f:
+            meta_data = yaml.safe_load(f)
+    except:
+        print('can\'t open metadata')
+        sys.exit(1)
 
     results = meta_data['results']
     total_files = meta_data['total-files']
@@ -193,7 +198,7 @@ def summarize_stuff_now():
     '''cause you gotta get some results out'''
     d = pathlib.Path('/g/g0/defazio1/non-jira-projects/migration/data').glob("*")
     #print(list(d))
-    d = [x for x in d if (x.name >= '2021-08-26_151411.616957' and x.name <= '2021-08-26_163113.065141/')]
+    d = [x for x in d if (x.name >= '2021-08-26_151411.616957' and x.name <= '2021-08-26_212217.504149')]
     #for x in d:
     #    print(x.name)
     fileout = '/g/g0/defazio1/non-jira-projects/migration/data/summary-now'
