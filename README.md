@@ -65,3 +65,20 @@ Also I need to increase the values `max_rpcs_in_flight` and  `max_mod_rpcs_in_fl
 on the clients, however for this to work I need to increase the value
 `max_mod_rpcs_per_client` on the server, then reset all the connections.
 Look these params up in the manual for how to set them.
+
+## New idea: use dsync
+Olaf made the point that lfs-migrate will preserve imporatant lustre metadata,
+especially the fid, however, we don't care about presrving this metadata,
+we just need some fid for each object. Because we're changing filesystems
+and not just moving data around within a filesystem, the fids are all going to
+change anyways. So why not try dsync? If copying files is just as fast,
+copy with dsync instead of mmigrating with lfs-migrate? Also, dsync could
+simplify the metadata/objects issue by doing both at the same time.
+
+The question is, how fast is it? Realistically, it's probably the fastest thing
+we've got that will put the files where they need to be for lustre
+(zfs send/receive is very fast, but it won't give us the lustre setup we want
+by itself).
+
+So test how fast dsync can move files from a filesystem and back to itself via
+pgarter on catalyst.
