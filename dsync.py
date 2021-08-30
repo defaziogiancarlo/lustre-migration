@@ -29,17 +29,27 @@ Need to create dirs with specific dirstripe to stuff goes to correct MDT
 also need to stripe correctly, so object go to correct OSTs
 '''
 
+import os
+import pathlib
+import random
+import subprocess
+
+import yaml
 
 def _default_name_func(n):
     '''Consecutive numbers in [0,n-1] as string and zero padded up to
     the length of str(n-1)
     '''
     max_number_length = len(str(n-1))
-    return (str(x).zfill(max_number_length) in range(n))
+    return (str(x).zfill(max_number_length) for x in range(n))
 
 def _default_size_func(n):
     '''Return 0 n times.'''
     return (0 for _ in range(n))
+
+def random_0_to_64M(n):
+    MiB = 2**20
+    return (random.randrange(0, 64 * MiB, MiB) for _ in range(n))
 
 def create_n_files(n, directory, size_func=None, name_func=None,
                    fraction_files=1.0):
@@ -56,8 +66,8 @@ def create_n_files(n, directory, size_func=None, name_func=None,
         print('ERROR: ratio must be in [0.0, 1.0]', file=sys.stderr)
         sys.exit(1)
 
-    num_files = (n * fraction_files).round()
-    num_dirs = (n * (1.0 - fraction_files)).round()
+    num_files = round(n * fraction_files)
+    num_dirs = round(n * (1.0 - fraction_files))
     #round_error = n - (num_files + num_dirs)
 
     # check if directory exists, error, if not, create it, record if it was created
@@ -75,20 +85,29 @@ def create_n_files(n, directory, size_func=None, name_func=None,
     # no need to check for 0, or even generate them, just do the touch()
     for name, size in zip(name_func(num_files), size_func(num_files)):
         if size == 0:
+            print('hello')
             (d / name).touch()
         else:
-            with open((d / name), 'w') as f:
-                f.write(os.urandom(n))
+            with open((d / name), 'wb') as f:
+                f.write(os.urandom(size))
+
+
 
 
 # TODO need to specify -N and -n
-def create_tree_with_n_copies(n, tree_path, dir_to_copy):
+def create_tree_with_n_copies(n, tree_path, dir_to_copy, num_nodes=2, num_procs=4):
     '''Create a dir that contains n copies of an existing dir'''
     d = pathlib.Path(tree_path)
-    d.mkdir()
+    subprocess.run(
+        [f'pdsh -w ecatalyst205 mkdir {str(tree_path)}'],
+        shell=True,
+        check=True,
+    )
+    # d.mkdir()
 
     # use dsync to create n copies
     for name in _default_name_func(n):
+        print(name)
         subprocess.run(
             [
                 'srun',
@@ -99,8 +118,11 @@ def create_tree_with_n_copies(n, tree_path, dir_to_copy):
                 'dsync',
                 dir_to_copy,
                 (d / name),
-            ]
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
+
 
 def create_tree_copies(copies_at_depth, tree_path, dir_to_copy):
     '''Create a tree that has dir_to_copy as its leaves.
@@ -119,3 +141,39 @@ def create_tree_copies(copies_at_depth, tree_path, dir_to_copy):
         dir_to_copy = root
 
     return root
+
+
+def yamlize(text):
+    '''preprocess the output from getstripe and getdirstripe so that
+    it can be read is as yaml.
+    '''
+    text = text.decode().split('\n')
+    text = [line for line in text if line]
+    yaml_lines = []
+    for line in text:
+        tokens = line.split()
+        for i in range(len(tokens) // 2):
+            yaml_lines.append(tokens[2*i] + ' ' + tokens[2*i+1])
+    return '\n'.join(yaml_lines)
+
+def load_lustre_yaml(text):
+    return yaml.safe_load(yamlize(text))
+
+
+def get_meta_data(dirname):
+    '''Get the important metadata from a directory'''
+    #dsync = '/usr/tce/packages/mpifileutils/mpifileutils-0.11/bin/dsync'
+    stripe_data = subprocess.run(
+        ['lfs', 'getstripe', '-d', dirname],
+        stdout = subprocess.PIPE,
+    ).stdout
+
+    dirstripe_data = subprocess.run(
+        ['lfs', 'getdirstripe', dirname],
+        stdout = subprocess.PIPE,
+    ).stdout
+
+    return {
+        'stripe': load_lustre_yaml(stripe_data),
+        'dirstripe': load_lustre_yaml(dirstripe_data)
+    }
