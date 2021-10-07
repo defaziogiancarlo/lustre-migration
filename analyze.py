@@ -114,7 +114,6 @@ def process_meta_data(dirname):
         yaml.safe_dump(meta_data, f)
 
 
-
 def summarize_meta_data(dirname, header=False, separator=','):
     '''summarize the important parts of the meta_data.
     and return them as a line in a table.
@@ -132,11 +131,10 @@ def summarize_meta_data(dirname, header=False, separator=','):
         'average',
         'median',
         'stddev',
+        'actual'
     ]
 
     # TODO copy meta-data.yaml in case I mess it up
-
-
 
     # return fields as comma separated
     if header:
@@ -168,6 +166,7 @@ def summarize_meta_data(dirname, header=False, separator=','):
         total_files * results['average-inv-time'],
         total_files * results['median-inv-time'],
         total_files * results['stdev-inv-time'],
+        total_files * (1 / results['earliest-to-latest'])
     ]
 
     return separator.join([str(d) for d in data])
