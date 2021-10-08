@@ -147,7 +147,7 @@ def create_tree_copies(copies_at_depth, tree_path, dir_to_copy):
     return root
 
 
-def yamlize(text):
+def _yamlize(text):
     '''preprocess the output from getstripe and getdirstripe so that
     it can be read is as yaml.
     '''
@@ -160,8 +160,8 @@ def yamlize(text):
             yaml_lines.append(tokens[2*i] + ' ' + tokens[2*i+1])
     return '\n'.join(yaml_lines)
 
-def load_lustre_yaml(text):
-    return yaml.safe_load(yamlize(text))
+def _load_lustre_yaml(text):
+    return yaml.safe_load(_yamlize(text))
 
 
 def get_meta_data(dirname):
@@ -178,9 +178,31 @@ def get_meta_data(dirname):
     ).stdout
 
     return {
-        'stripe': load_lustre_yaml(stripe_data),
-        'dirstripe': load_lustre_yaml(dirstripe_data)
+        'stripe': _load_lustre_yaml(stripe_data),
+        'dirstripe': _load_lustre_yaml(dirstripe_data)
     }
+
+
+def get_stripe_and_dirstripe(path):
+    '''Get the stripe and dirstripe data for a directory'''
+    stripe_data = subprocess.run(
+        ['lfs', 'getstripe', '--yaml', '-d', dirname],
+        stdout = subprocess.PIPE,
+    ).stdout
+
+    dirstripe_data = subprocess.run(
+        ['lfs', 'getdirstripe', '--yaml', dirname],
+        stdout = subprocess.PIPE,
+    ).stdout
+
+    stripe_data = yaml.safe_load(stripe_data)
+    dirstripe_data = yaml.safe_load(dirstripe_data)
+
+    return {
+        'stripe': stripe_data,
+        'dirstripe': dirstripe_data
+    }
+
 
 
 
