@@ -235,3 +235,69 @@ def do_whole_run( ):
 
     '''
     pass
+
+def process_ouptput(text):
+    '''Process the output of dsync
+    and grab all the data that matters for
+    performance.
+
+    important data to capture:
+
+    earliest and latest time
+
+    walk rate
+    copy rate
+    sync rate
+
+    items
+      directories
+      files
+      links
+
+    '''
+    # expect to see [<time_stamp>]
+    # but may be 0: [<time_stamp>] with slurm proccess numbers prefixed
+
+
+    # TODO check for slurm process prefix and remove
+
+    # TODO grab first and last time stamp for total time
+    #
+    data = {
+        'num_items': None,
+        'num_directories': None,
+        'num_files': None,
+        'num_links': None,
+
+        'walk_rate': None,
+        'copy_rate': None,
+        'sync_rate': None,
+        'source_path': None,
+        'dest_path': None,
+
+    }
+
+    dsync_timestamp_regex = r'^\[(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\)]'
+    time_stamp_format = '%Y-%m-%dT%H:%M:%S'
+
+    # remove any proc numbers and split into lines and strip whitesapce
+    text = remove_proc_nums(text)
+    text = [line.strip() for line in text.split('\n')]
+
+    for i,line in enumerate(text):
+        # get the first timestamp
+        if i == 0:
+            start_time_stamp = dsync_timestamp_regex.find(line)
+            data['start'] = datetime.datetime.strptime(start_time_stamp)
+        # get the last time stamp
+        if i == len(text) - 1:
+            end_time_stamp = dsync_timestamp_regex.find(line)
+            data['end'] = datetime.datetime.strptime(end_time_stamp)
+        # get the walk rate
+        if 'Item rate:' in line:
+            pass
+
+        # get the copy rate
+        if 'Copy rate:' in line:
+            pass
+        # get the update rate
