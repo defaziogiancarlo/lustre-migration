@@ -2,36 +2,34 @@
 with mdtest to create trees of files in lustre.
 '''
 
+import argparse
 import pathlib
 import sys
 import subprocess
 
+def split_args(args):
+    if isinstance(args, str):
+        return args.split()
+    return list(args)
+
+
 #TODO assumes that args passed in are already in list form
-def create_single_tree(path,
-                       setdirstripe_args=None,
-                       setstripe_args=None,
-                       mdtest_args=None
-                       overwrite=False):
+def create_single_tree(args):
     '''Create a directory and set its striping
     and dirstriping, then create a file tree in it using
     mdtest.
     '''
-    # if user gives no arguments the arglist should be []
-    # however, argument defaults should be immutable (like None)
-    arg_lists = [setdirstripe_args, setstripe_args, mdtest_arg]
-    for i in range(len(arg_lists)):
-         arg_lists[i] = [] if arg_lists[i] is None else arg_lists[i]
+    setdirstripe_args = split_args(args.setdirstripe_args)
+    setstripe_args = split_args(args.setstripe_args)
+    mdtest_args = split_args(args.mdtest_args)
 
-    path = pathlib.Path(path)
+    path = pathlib.Path(args.path)
 
     if path.exists():
-        if not overwrite:
-            print(f'ERROR: {str(path)} exits, will not overwrite')
-            sys.exit(1)
-        else:
-            # whatever is at path, which might be a lot
-            # so use something like mpifileutils or mdtest
-            pass
+        print(f'ERROR: {str(path)} exits, will not overwrite')
+        sys.exit(1)
+    #path.mkdir()
+    path = str(path)
 
     # must use lfs setdirsripe at creation time
     subprocess.run(
@@ -39,19 +37,32 @@ def create_single_tree(path,
         check=True
     )
 
-    if setstripe_args is not None:
+    if setstripe_args is not []:
+        subprocess.run(
+            ['lfs', 'setstripe'] + setstripe_args + [path],
+            check=True
+        )
+
     subprocess.run(
-        ['lfs', 'setstripe'] + setstripe_args + [path],
+        ['srun', 'mdtest'] + mdtest_args + ['-d', path],
         check=True
     )
 
-    subprocess.run(
-        ['srun', 'mdtest']
-    )
 
 
 def make_parser():
+    description = (
+        'A wrapper around mdtest that allows for creating a directory with '
+        'its lustre striping and directory striping set, then filling it with '
+        'files using mdtest. '
+        'Argument lists should be in quotes. '
+    )
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-p',
+        '--path',
+        help='the path at which the tree is made.'
+    )
     parser.add_argument(
         '--setstripe-args',
         help='argument string to pass directly to lfs setstripe'
@@ -64,3 +75,12 @@ def make_parser():
         '--mdtest-args',
         help='argument string to pass directly to lfs mdtest'
     )
+    parser.add_argument(
+        '--srun-args',
+        help='args to srun',
+    )
+    return parser
+
+if __name__ == '__main__':
+    args = make_parser().parse_args()
+    create_single_tree(args)

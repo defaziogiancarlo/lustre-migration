@@ -1,6 +1,6 @@
 # Testing plan for lfs-migrate performace testing
-It was noticed while trying to use lfs-migrate for meta-data
-migration, that lfs-migrate has poor performance.
+While trying to use lfs-migrate for meta-data
+migration, we found that lfs-migrate has poor performance.
 Even when using many threads, sustained performance was around
 400 items/second, which is too slow to be practical for migrations
 of large numbers of files and directories.
@@ -8,10 +8,6 @@ of large numbers of files and directories.
 This testing plan is for performing a new test to see if the above results
 are in fact the limit, or near the limit of lfs-migrate's performance,
 or if the original tests were flawed in some way.
-Some possible ways the tests were flawed are:
-- the setup was wrong in some way and the results are not from the intended setup
-- the results were interpreted incorrectly
-- there are tweaks and tricks needed to make lfs-migate fast that were not used
 
 This plan is intended to be reviewed by people at llnl and also whamcloud
 to help avoid repeating any mistakes that may have been in the first round of
@@ -79,75 +75,53 @@ processes and nodes, but sub-linearly, and ends up around
 ## Plan for second test
 For the most part I intend to repeat the first test, but in
 a more thorough and systematic way.
+The overall plan is still to make a tree, then migrate it.
+My intent is to split it into 3 phases:
+- create the trees
+- migrate the tree
+- analyze the data generated during the migration
 
-### questions about possible changes
+### create the trees
+The tree can be created using `mdtest`.
+`mdtest` has most of the options I care about, and the exact
+creation command can be saved in the meta-data of the test
+for test validation.
 
-- Should I be using slurm to do a bunch of simultious `lfs-migrate`s
-all on the same diretory tree?
-- Should I be migrating different arrangement of files/directories
-to better reflect real migration workloads
-- are there lustre,lnet,etc. settings that should be changed to help
-perfomance
-- did I have the preferred zfs/jbod setting on garter when I did the tests?
-(I believe the answer is no) This my help a little bit?
-- Are there other tools I should be using? similar the the one in mpifileutils?
+The only major shortcoming is that it's difficult to set different
+stiping and directory striping. This can be pre-creating directories,
+setting their striping and directory striping, and then having `mdtest`
+create trees within these directories, which will each tree to inherit
+these setting from its respective parent directory.
 
+### migrate the tree
+The migration is done in parallel by many processes, each running
+`lfs-migrate` on one of the directories mentioned above.
+This allows parallelism on the client side, and also the ability to do
+various (from,to) combinations of MDTs and OSTs.
 
-- Will lfs-migrate end up limited by data operations and not meta-data
-operations for real workloads anyways?
+Data needs to be collected during the run. Process 0 will write the data for
+the whole run, and each proccess will write its own performance data.
+This will gernerate 1 file per processes, and 1 more for the run-wide data.
 
-### data to collect
-
-#### per test run
+#### data to collect per test run
 - start time
 - end time
 - the srun command
 - where the output data is written
 - total items migrated
 
-#### per process
+#### data to collect per process
 - number of items migrated for each process
-- what kind of items are migrated
+- what kind of items are migrated (files/directories)
 - migration start and stop time
 - source MDTs
 - destination MDTs
 - the lfs-migrate command
 
+Many tests can be run, with varying parameters
 
-### parameters to vary
-
+#### parameters to vary
 - the number of processes
-- the number of client nodes used
-- the number of processes per client node
-- what kinda of items are migrated
-- how many items per proces are migrated
-
-### code improvements
-The main goal is simplicity. One idea is to reduce the complexity of
-the program by giving the user addtional resposibilities.
-
-The user calls `srun` directly, and has to have created the files that will be
-migrated, as well as the directory where the results of the run will go.
-
-The user needs to keep track of how many processes to use, and of the number of
-items being processed by each proccess. The user also has to specify more
-things on the command line than the original test-setup required.
-
-The user is also responsible for the post-processing step.
-
-Using this paradigm, there are 3 programs to create:
-a file making program
-a migration program
-a post-processing program
-
-The user would then issue separate commands for these 3 programs.
-
-- Use existing tools. For example, use mpifileutils to create/destroy
-the files that I migrate instead of writing the code for that from scratch.
-- remove the intermediate step of create a command\_file, it is redundant
-because the meta-data file can records the full `srun` and `lfs-migrate`
-command.
-- maybe have the threads aggregate their data while running instead of all
-writing to separate files (like mpifileutils)
-- allow the output to go to stdout (like mpifileutils)
-- generally simplify and comment better (good luck)
+- the number of nodes used
+- what kind of of items that are migrated
+- how many items per proccess are migrated
