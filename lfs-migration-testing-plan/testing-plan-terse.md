@@ -1,18 +1,83 @@
-# Testing plan for lfs-migrate performace testing
-While trying to use lfs-migrate for meta-data
-migration, we found that lfs-migrate has poor performance.
+# lfs-migrate Performance Testing
+While trying to use `lfs-migrate` for meta-data
+migration, we found that the `lfs-migrate` does not scale well.
 Even when using many threads, sustained performance was around
 400 items/second, which is too slow to be practical for migrations
 of large numbers of files and directories.
 
-This testing plan is for performing a new test to see if the above results
-are in fact the limit, or near the limit of lfs-migrate's performance,
-or if the original tests were flawed in some way.
+This testing plan is for performing additional tests to see if the
+above results are in fact the limit, or near the limit of `lfs-migrate`'s
+performance.
 
-This plan is intended to be reviewed by people at llnl and also whamcloud
-to help avoid repeating any mistakes that may have been in the first round of
-tests, and to potentially get ideas for features that should be added to
-better evaluate the performance of lfs-migrate.
+## Overview
+The performance to be measured is the rate at which items
+(files and directories) can be migrated. These items will be in
+a tree (or trees) and migrated by many processes running
+`lfs-migrate` in parallel.
+
+The 3 basic parts of the test are:
+- create the trees
+- migrate the trees
+- analyze the data generated during the migration
+
+### Create the Trees
+A single tree can be created using `mdtest`.
+`mdtest` has the ability to make trees of files and directories,
+and can parameterize those trees in most of the ways neccesary for this test.
+The `mdtest` command can be saved in the meta-data of the test to make it easy
+to recreate the trees when repeating the test.
+
+The only major shortcoming with `mdtest` is that it doesn't set
+the striping and directory striping of the trees it creates.
+This can be overcome by pre-creating directories,
+setting their striping and directory striping, and then having `mdtest`
+create trees within these directories so that each tree inherits
+these setting from its respective parent directory.
+
+The command to create the trees needs to be saved. This includes
+both the `mdtest` command per directory, and also the command to make
+the directories and set their striping and directory striping.
+Also, `mdtest` will be run with `srun`, so really the whole `srun`
+command needs to be saved.
+
+### Migrate the Trees
+The migration is done in parallel by many processes, each running
+`lfs-migrate` on one of the directories that contains a tree created
+by `mdtest`. The many processes are created and spread across multiple
+client nodes using `srun`.
+
+Data needs to be collected during the run. Process 0 will write the data for
+the whole run, and each process will write its own performance data.
+This will generate 1 file per processes, and 1 more for the run-wide data.
+Some of the collected data could be inferred from other data (or from the slurm
+database) but it's easier to just grab it anyays to simplify post-processing.
+
+#### Data to Collect Per Run
+- total items migrated
+- the mdtest command and the striping/dirstriping commands
+- slurm jobid
+- the srun command the does the migration
+- metadata/object data/both
+
+#### Data to Collect Per Process
+- start time (of lfs-migrate)
+- end time (of lfs-migrate)
+- source MDTs/OSTs
+- destination MDTs/OSTs
+- the lfs-migrate command (which contains some of the above info)
+
+#### Parameters to Vary between Runs
+- the number of processes (1-256)
+- the number of nodes (1-16)
+- the kind of items that are migrated (files/directories/some of each)
+- how many items per process are migrated (1-4096(at least))
+
+### Data Analysis
+The data recorded for each run will all go into a single directory.
+A script will read the meta-data and per-process perfomance data, and
+calculate the rate at which items are migrated as well
+as the data rate.
+
 
 ## Description of previous tests
 
@@ -72,60 +137,3 @@ processes and nodes, but sub-linearly, and levels off around
 400 items/sec sustained performance.
 Performance levels off at 32 total processes, and doesn't really improve much
 up to the max of 256 tested.
-
-
-## Plan for second test
-For the most part I intend to repeat the first test, but in
-a more thorough and systematic way.
-The overall plan is still to make a tree, then migrate it.
-My intent is to split it into 3 phases:
-- create the trees
-- migrate the tree
-- analyze the data generated during the migration
-
-### create the trees
-The tree can be created using `mdtest`.
-`mdtest` has most of the options I care about, and the exact
-creation command can be saved in the meta-data of the test to make it easy
-to repeat tests.
-
-The only major shortcoming with `mdtest` is that it's difficult to set
-different striping and directory striping to the trees it creates.
-This can be overcome by pre-creating directories,
-setting their striping and directory striping, and then having `mdtest`
-create trees within these directories so that each tree inherits
-these setting from its respective parent directory.
-
-### migrate the tree
-The migration is done in parallel by many processes, each running
-`lfs-migrate` on one of the directories mentioned above.
-This allows parallelism on the client side, and also the ability to do
-various (from,to) combinations of MDTs and OSTs.
-
-Data needs to be collected during the run. Process 0 will write the data for
-the whole run, and each process will write its own performance data.
-This will generate 1 file per processes, and 1 more for the run-wide data.
-
-#### data to collect per test run
-- start time
-- end time
-- the lfs-migrate command
-- where the output data is written
-- total items migrated
-- the mdtest command and the striping/dirstriping
-- slurm info, especially the jobid
-
-#### data to collect per process
-- what kind of items are migrated (files/directories)
-- migration start and stop time
-- source MDTs
-- destination MDTs
-- the lfs-migrate command
-
-Many tests can be run, with varying parameters
-
-#### parameters to vary
-- the number of processes
-- the number of nodes used
-- the kind of items that are migrated
-- how many items per process are migrated

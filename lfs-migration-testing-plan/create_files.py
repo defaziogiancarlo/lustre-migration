@@ -49,6 +49,14 @@ def create_single_tree(args):
     )
 
 
+def create_dirs_with_striping(topdir, stripings):
+    '''Create a bunch of directories , set the striping and directory striping
+    for each.
+    '''
+
+    # create topdir
+
+    # --
 
 def make_parser():
     description = (
@@ -63,9 +71,13 @@ def make_parser():
         '--path',
         help='the path at which the tree is made.'
     )
+    # parser.add_argument(
+    #     '--setstripe-args',
+    #     help='argument string to pass directly to lfs setstripe'
+    # )
     parser.add_argument(
-        '--setstripe-args',
-        help='argument string to pass directly to lfs setstripe'
+        '--setdirstripe-args',
+        help='argument string to pass directly to lfs setdirstripe'
     )
     parser.add_argument(
         '--setdirstripe-args',
